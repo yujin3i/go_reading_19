@@ -1,0 +1,159 @@
+Go で Alexa とお話しよう！
+11 Aug 2018
+第19回横浜Go読書会
+
+Yuji Nagatomo
+
+* 実演
+
+【想定しているシーン】
+
+今日も読書会が始まりました。
+皆さんそろってますかね？今日って参加者何人でしたっけ？
+
+そんなときに！
+
+「アレクサ、横浜Go読書会の参加人数を教えて」
+
+* 内容
+- 実演
+- 動機 
+- 構成
+- Alexa Skills の開発 
+- Goの使用箇所
+- コード構成
+- 今後の課題
+- 参考
+
+* 動機
+0. これまでの読書会の発表聞いて、Goを使って楽しいことしてみたい。
+
+1. AIのテストに関する話題を見かけるようになった。
+⇒ 今後AIをテストすること、AIを使ってテストする可能性もあるから、AIのこと知りたくなった。
+
+2. Amazon Echo dot が自宅にあった。
+
+4. 本屋でAIスピーカーの開発に関する本を見かけるようになった。
+⇒ ネットで調べると Alexa Skills の開発などの記事がいろいろ出てくるようにもなっている。
+
+5. 調べてたら、今年の初めにAWS LambdaでGoが対応になっていた。
+.link https://aws.amazon.com/jp/about-aws/whats-new/2018/01/aws-lambda-supports-go/
+⇒ 今後Serverless開発の分野でもGoの使用が広がる可能性がある。
+
+ということで、Alexa Skills を作ってみよう！
+
+
+* 構成
+
+.image image/構成図.png 540 980
+
+* Alexa Skills の開発
+
+1. 対話モデルの設計
+2. エンドポイントの開発 ← ここで Go を使用
+3. エンドポイントの登録
+4. テスト ← 今回はここまでしかしてません。
+5. 公開
+
+* Alexa Skills の開発 1
+1. 対話モデルの設計
+　- 開発者コンソールで Alexa Skills Kit からスキルの作成開始
+　- スキルの呼び出し名を設定 → 今回は、「横浜Go読書会」と設定
+　- 対話モデルの作成
+　　利用者がどのように話しかけたら、Alexaがどのように意味を解釈して、
+　　その結果をどのようにイベントとしてエンドポイントに送るべきかを設定
+　　→ 参加人数を扱うためのカスタムインテントを追加
+　　　
+　※ インテントとは、話しかけたリクエストを実行するアクション
+
+* Alexa Skills の開発 2〜4
+2. エンドポイントの開発
+
+1で追加したカスタムインテントを受け取って、何らかの処理をした上で、
+Alexa に応答を返すイベント駆動のサーバープログラムを作成
+→ 今回は、AWS Lambda というサービスを使用
+→ 処理としては、connpass のサイトで「横浜Go読書会」を検索後、検索結果
+　から、人数を取得する処理
+
+3. エンドポイントの登録
+
+2で開発したエンドポイントを対話モデルに設定
+
+4. テスト
+
+開発コンソールからテスト or echo でテスト
+
+* Goの使用箇所
+
+AWS Lambda で Go を使用。
+
+　1. Alexa から送られていたリクエストを受けて、Alexa にレスポンスを返す部分
+　2. connpass のサイトをスクレイピングして、参加人数を取ってくる部分
+
+* Goの使用箇所 1
+
+● AWS Lambda で使用
+
+.image image/lambda_go.png 340 720
+
+AWS Lambda で Go を使用するために、以下を go get で取得
+
+　- github.com/aws/aws-lambda-go/lambda
+
+* Goの使用箇所 2
+
+● connpass のサイトをスクレイピングするところで使用
+
+.image image/search_result_go.png 340 720
+
+Go のスクレイピングでよく使用される goquery を使いました。
+
+　- github.com/PuerkitoBio/goquery
+
+* コード構成
+
+AWS Lambda で使用しているコードの構成。
+
+example
+┣ alexa
+┃　┣ request.go
+┃　┗ response.go
+┗ main.go
+
+　request.go：Alexa から受け取るリクエストの JSON に対応するための構造体を定義
+　response.go：Alexa へ応答するレスポンスの JSON に対応するための構造体の定義と
+　　　　　　　　返答するスピーチの内容を作成する関数の定義
+　main.go：メインの関数。この中で goquery を使って参加人数を取ってきて、それを
+　　　　　  使用して今回の返答スピーチを作成
+
+コンパイルしてできた実行ファイルをzipにかためてアップロードします。
+
+* コード抜粋 1
+.code example/main.go /START OMIT/,/END OMIT/
+
+* コード抜粋 2
+.code example/main.1.go /START OMIT/,/END OMIT/
+
+* 今後の課題
+・ ビルドインインテントの活用。
+　 → AMAZON 側で標準で用意しているインテント使って、より自然なやりとりを可能にする。
+
+・ Google Home も同じような感じで、Google Assistant アプリの作成。
+　 → スマホを使った対応も可能になる。
+
+* 参考
+
+【Alexa Skills 開発関連】
+
+- Alexa 道場
+.link https://developer.amazon.com/ja/alexa-skills-kit/webinars
+- AlexaスキルをGoとServerlessで書いてみた
+.link https://qiita.com/yamaryu0508/items/57c0aea47f97a6b76335
+- AlexaにYahoo路線情報を聴けるようにした
+.link https://qiita.com/Sa2Knight/items/a7eb54b6fe8a809dffc8
+
+【Go でスクレイピング関連】
+
+- goでスクレイピングするのにgoquery + bluemondayが最強な件
+.link https://qiita.com/ryurock/items/b0466ad144f5e0555a95
+
